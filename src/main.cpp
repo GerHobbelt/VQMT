@@ -64,7 +64,6 @@
 **************************************************************************/
 
 #include <iostream>
-#include <stdio.h>
 #include <string.h>
 #include <opencv2/core/core.hpp>
 #include "VideoYUV.hpp"
@@ -218,7 +217,7 @@ int main (int argc, const char *argv[])
 	float result_avg[METRIC_SIZE] = {0};
 
 	for (int frame=0; frame<nbframes; frame++) {
-        std::cout << frame << std::endl;
+        std::cout << "Computing: No." << frame << std::endl;
 
 		// Grab frame
 		if (!original->readOneFrame()) exit(EXIT_FAILURE);
@@ -282,12 +281,15 @@ int main (int argc, const char *argv[])
 		}
 
 		// Print quality index to file
+        std::cout << ". result: ";
 		for (int m=0; m<METRIC_SIZE; m++) {
 			if (result_file[m] != NULL) {
 				result_avg[m] += result[m];
 				fprintf(result_file[m], "%d,%.6f\n", frame, static_cast<double>(result[m]));
+                std::cout << result[m] << "  ";
 			}
 		}
+        std::cout << std::endl;
 	}
 
 	// Print average quality index to file
