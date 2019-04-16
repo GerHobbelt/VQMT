@@ -96,6 +96,9 @@ set(SRCS
     ${SOURCE_DIR}/VideoYUV.cpp
     ${SOURCE_DIR}/VIFP.cpp
     ${SOURCE_DIR}/EWPSNR.cpp
+
+    # Spherical metrics
+    ${SOURCE_DIR}/WSPSNR.cpp
 )
 add_executable(
     ${EXECUTABLE_NAME}

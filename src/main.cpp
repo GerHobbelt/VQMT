@@ -36,12 +36,15 @@
   Output: the name of the output file(s)
   Metrics: the list of metrics to use
    available metrics:
-   - PSNR: Peak Signal-to-Noise Ratio (PNSR)
+   - PSNR: Peak Signal-to-Noise Ratio (PSNR)
    - SSIM: Structural Similarity (SSIM)
    - MSSSIM: Multi-Scale Structural Similarity (MS-SSIM)
    - VIFP: Visual Information Fidelity, pixel domain version (VIFp)
    - PSNRHVS: Peak Signal-to-Noise Ratio taking into account Contrast Sensitivity Function (CSF) (PSNR-HVS)
    - PSNRHVSM: Peak Signal-to-Noise Ratio taking into account Contrast Sensitivity Function (CSF) and between-coefficient contrast masking of DCT basis functions (PSNR-HVS-M)
+
+And also Spherical metrics:
+   - WSPSNR: Weighted-to-spherical PSNR
 
  Example:
   VQMT.exe original.yuv processed.yuv 1088 1920 250 1 results PSNR SSIM MSSSIM VIFP
@@ -74,6 +77,9 @@
 #include "PSNRHVS.hpp"
 #include "EWPSNR.hpp"
 
+// Spherical metrics
+#include "WSPSNR.hpp"
+
 enum Params {
 	PARAM_ORIGINAL = 1,	// Original video stream (YUV)
 	PARAM_PROCESSED,	// Processed video stream (YUV)
@@ -96,6 +102,7 @@ enum Metrics {
 	METRIC_PSNRHVS,
 	METRIC_PSNRHVSM,
     METRIC_EWPSNR,
+    METRIC_WSPSNR,
 	METRIC_SIZE
 };
 
@@ -110,7 +117,7 @@ int main (int argc, const char *argv[])
 	double duration = static_cast<double>(cv::getTickCount());
 
 	// Input parameters
-	char *endptr = NULL;
+    char *endptr = nullptr;
 	int height = static_cast<int>(strtol(argv[PARAM_HEIGHT], &endptr, 10));
 	if (*endptr) {
 		fprintf(stderr, "Incorrect value for video height: %s\n", argv[PARAM_HEIGHT]);
@@ -137,7 +144,7 @@ int main (int argc, const char *argv[])
 	VideoYUV *processed = new VideoYUV(argv[PARAM_PROCESSED], height, width, nbframes, chroma);
 
 	// Output files for results
-	FILE *result_file[METRIC_SIZE] = {NULL};
+    FILE *result_file[METRIC_SIZE] = {nullptr};
 	char *str = new char[256];
 	for (int i=7; i<argc; i++) {
 		if (strcmp(argv[i], "PSNR") == 0 || strcmp(argv[i], "YPSNR") == 0) {
@@ -175,23 +182,27 @@ int main (int argc, const char *argv[])
 			sprintf(str, "%s_ewpsnr.csv", argv[PARAM_RESULTS]);
 			result_file[METRIC_EWPSNR] = fopen(str, "w");
 		}
+		else if (strcmp(argv[i], "WSPSNR") == 0) {
+			sprintf(str, "%s_wspsnr.csv", argv[PARAM_RESULTS]);
+			result_file[METRIC_WSPSNR] = fopen(str, "w");
+		}
 	}
 	delete[] str;
 
 	// Check size for VIFp downsampling
-	if (result_file[METRIC_VIFP] != NULL && (height % 8 != 0 || width % 8 != 0)) {
+    if (result_file[METRIC_VIFP] != nullptr && (height % 8 != 0 || width % 8 != 0)) {
 		fprintf(stderr, "VIFp: 'height' and 'width' have to be multiple of 8.\n");
 		exit(EXIT_FAILURE);
 	}
 	// Check size for MS-SSIM downsampling
-	if (result_file[METRIC_MSSSIM] != NULL && (height % 16 != 0 || width % 16 != 0)) {
+    if (result_file[METRIC_MSSSIM] != nullptr && (height % 16 != 0 || width % 16 != 0)) {
 		fprintf(stderr, "MS-SSIM: 'height' and 'width' have to be multiple of 16.\n");
 		exit(EXIT_FAILURE);
 	}
 
 	// Print header to file
 	for (int m=0; m<METRIC_SIZE; m++) {
-		if (result_file[m] != NULL) {
+        if (result_file[m] != nullptr) {
 			fprintf(result_file[m], "frame,value\n");
 		}
 	}
@@ -217,7 +228,7 @@ int main (int argc, const char *argv[])
 	float result_avg[METRIC_SIZE] = {0};
 
 	for (int frame=0; frame<nbframes; frame++) {
-        std::cout << "Computing: No." << frame << std::endl;
+        std::cout << "Computing metrics for frame: No." << frame << std::endl;
 
 		// Grab frame
 		if (!original->readOneFrame()) exit(EXIT_FAILURE);
@@ -247,7 +258,7 @@ int main (int argc, const char *argv[])
 		}
 
 		// Compute SSIM and MS-SSIM
-		if (result_file[METRIC_SSIM] != NULL && result_file[METRIC_MSSSIM] == NULL) {
+    if (result_file[METRIC_SSIM] != nullptr && result_file[METRIC_MSSSIM] == nullptr) {
 			result[METRIC_SSIM] = ssim->compute(original_frame, processed_frame);
 		}
 
@@ -256,26 +267,30 @@ int main (int argc, const char *argv[])
 			result[METRIC_YUVSSIM] = yuvssim->compute(original_frame3, processed_frame3);
 		}
 
-		if (result_file[METRIC_MSSSIM] != NULL) {
-			msssim->compute(original_frame, processed_frame);
-			if (result_file[METRIC_SSIM] != NULL) {
+    if (result_file[METRIC_MSSSIM] != nullptr) {
+      msssim->compute(original_frame, processed_frame);
+      
+      if (result_file[METRIC_SSIM] != nullptr) {
 				result[METRIC_SSIM] = msssim->getSSIM();
 			}
+
 			result[METRIC_MSSSIM] = msssim->getMSSSIM();
 		}
 
 		// Compute VIFp
-		if (result_file[METRIC_VIFP] != NULL) {
+    if (result_file[METRIC_VIFP] != nullptr) {
 			result[METRIC_VIFP] = vifp->compute(original_frame, processed_frame);
 		}
 
 		// Compute PSNR-HVS and PSNR-HVS-M
-		if (result_file[METRIC_PSNRHVS] != NULL || result_file[METRIC_PSNRHVSM] != NULL) {
-			phvs->compute(original_frame, processed_frame);
-			if (result_file[METRIC_PSNRHVS] != NULL) {
+    if (result_file[METRIC_PSNRHVS] != nullptr || result_file[METRIC_PSNRHVSM] != nullptr) {
+		  phvs->compute(original_frame, processed_frame);
+
+      if (result_file[METRIC_PSNRHVS] != nullptr) {
 				result[METRIC_PSNRHVS] = phvs->getPSNRHVS();
 			}
-			if (result_file[METRIC_PSNRHVSM] != NULL) {
+
+      if (result_file[METRIC_PSNRHVSM] != nullptr) {
 				result[METRIC_PSNRHVSM] = phvs->getPSNRHVSM();
 			}
 		}
@@ -283,8 +298,8 @@ int main (int argc, const char *argv[])
 		// Print quality index to file
         std::cout << ". result: ";
 		for (int m=0; m<METRIC_SIZE; m++) {
-			if (result_file[m] != NULL) {
-				result_avg[m] += result[m];
+      if (result_file[m] != nullptr) {
+			  result_avg[m] += result[m];
 				fprintf(result_file[m], "%d,%.6f\n", frame, static_cast<double>(result[m]));
                 std::cout << result[m] << "  ";
 			}
@@ -294,7 +309,7 @@ int main (int argc, const char *argv[])
 
 	// Print average quality index to file
 	for (int m=0; m<METRIC_SIZE; m++) {
-		if (result_file[m] != NULL) {
+    if (result_file[m] != nullptr) {
 			result_avg[m] /= static_cast<float>(nbframes);
 			fprintf(result_file[m], "average,%.6f", static_cast<double>(result_avg[m]));
 			fclose(result_file[m]);
@@ -315,3 +330,4 @@ int main (int argc, const char *argv[])
 
 	return EXIT_SUCCESS;
 }
+
