@@ -215,7 +215,8 @@ int main (int argc, const char *argv[])
 	VIFP *vifp     = new VIFP(height, width);
 	PSNRHVS *phvs  = new PSNRHVS(height, width);
     EWPSNR *ewpsnr = new EWPSNR(height, width);
-
+    WSPSNR *wspsnr = new WSPSNR(height, width);
+	
     if (result_file[METRIC_EWPSNR] != NULL) {
         ewpsnr->match_eye_track_data(argv[PARAM_ORIGINAL]);
     }
@@ -233,6 +234,7 @@ int main (int argc, const char *argv[])
 		// Grab frame
 		if (!original->readOneFrame()) exit(EXIT_FAILURE);
 		original->getLuma(original_frame, CV_32F);
+
 		if (!processed->readOneFrame()) exit(EXIT_FAILURE);
 		processed->getLuma(processed_frame, CV_32F);
 
@@ -295,6 +297,13 @@ int main (int argc, const char *argv[])
 			}
 		}
 
+        // Compute WSPSNR
+        if (result_file[METRIC_WSPSNR] != nullptr) {
+            result[METRIC_WSPSNR] = wspsnr->compute(original_frame, processed_frame);
+        }
+
+        printf ("PSNR: %.3f, WSPSNR: %.3f\n", result[METRIC_PSNR], result[METRIC_WSPSNR]);
+
 		// Print quality index to file
         std::cout << ". result: ";
 		for (int m=0; m<METRIC_SIZE; m++) {
@@ -321,6 +330,9 @@ int main (int argc, const char *argv[])
 	delete msssim;
 	delete vifp;
 	delete phvs;
+
+    delete wspsnr;
+
 	delete original;
 	delete processed;
 
