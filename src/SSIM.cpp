@@ -38,7 +38,23 @@
 const float SSIM::C1 = 6.5025f;
 const float SSIM::C2 = 58.5225f;
 
-SSIM::SSIM(int h, int w) : Metric(h, w)
+SSIM::SSIM(int h, int w) : Metric(h, w),
+  mu1(h, w, CV_32FC3),
+  mu2(h, w, CV_32FC3),
+  mu1_sq(h, w, CV_32FC3),
+  mu2_sq(h, w, CV_32FC3),
+  mu1_mu2(h, w, CV_32FC3),
+  img1_sq(h, w, CV_32FC3),
+  img2_sq(h, w, CV_32FC3),
+  img1_img2(h, w, CV_32FC3),
+  sigma1_sq(h, w, CV_32FC3),
+  sigma2_sq(h, w, CV_32FC3),
+  sigma12(h, w, CV_32FC3),
+  tmp1(h, w, CV_32FC3),
+  tmp2(h, w, CV_32FC3),
+  tmp3(h, w, CV_32FC3),
+  ssim_map(h, w, CV_32FC3),
+  cs_map(h, w, CV_32FC3)
 {
 }
 
@@ -50,19 +66,6 @@ float SSIM::compute(const cv::Mat& original, const cv::Mat& processed)
 
 cv::Scalar SSIM::computeSSIM(const cv::Mat& img1, const cv::Mat& img2)
 {
-
-	int ht = img1.rows;
-	int wt = img1.cols;
-	int w = wt - 10;
-	int h = ht - 10;
-
-	cv::Mat mu1(h,w,CV_32F), mu2(h,w,CV_32F);
-	cv::Mat mu1_sq(h,w,CV_32F), mu2_sq(h,w,CV_32F), mu1_mu2(h,w,CV_32F);
-	cv::Mat img1_sq(ht,wt,CV_32F), img2_sq(ht,wt,CV_32F), img1_img2(ht,wt,CV_32F);
-	cv::Mat sigma1_sq(h,w,CV_32F), sigma2_sq(h,w,CV_32F), sigma12(h,w,CV_32F);
-	cv::Mat tmp1(h,w,CV_32F), tmp2(h,w,CV_32F), tmp3(h,w,CV_32F);
-	cv::Mat ssim_map(h,w,CV_32F), cs_map(h,w,CV_32F);
-
 	// mu1 = filter2(window, img1, 'valid');
 	applyGaussianBlur(img1, mu1, 11, 1.5);
 
@@ -104,9 +107,18 @@ cv::Scalar SSIM::computeSSIM(const cv::Mat& img1, const cv::Mat& img2)
 	cv::divide(tmp1, tmp2, ssim_map);
 
 	// mssim = mean2(ssim_map);
-	double mssim = cv::mean(ssim_map).val[0];
+	cv::Scalar ssim_mean = cv::mean(ssim_map);
+	double mssim = ssim_mean.val[0];
 	// mcs = mean2(cs_map);
-	double mcs = cv::mean(cs_map).val[0];
+	cv::Scalar cs_mean = cv::mean(cs_map);
+	double mcs = cs_mean.val[0];
+
+	for (int i = 1; i < img1.channels(); ++i) {
+		mssim += ssim_mean.val[1];
+		mcs += cs_mean.val[1];
+	}
+	mssim /= img1.channels();
+	mcs /= img1.channels();
 
 	cv::Scalar res(mssim, mcs);
 

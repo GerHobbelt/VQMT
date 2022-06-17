@@ -65,6 +65,8 @@ private:
 	double msssim;
 	static const int NLEVS = 5;
 	static const double WEIGHT[];
+	cv::Mat im1[NLEVS];
+	cv::Mat im2[NLEVS];
 };
 
 #endif

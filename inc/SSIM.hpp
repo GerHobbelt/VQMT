@@ -55,6 +55,12 @@ protected:
 private:
 	static const float C1;
 	static const float C2;
+	cv::Mat mu1, mu2;
+	cv::Mat mu1_sq, mu2_sq, mu1_mu2;
+	cv::Mat img1_sq, img2_sq, img1_img2;
+	cv::Mat sigma1_sq, sigma2_sq, sigma12;
+	cv::Mat tmp1, tmp2, tmp3;
+	cv::Mat ssim_map, cs_map;
 };
 
 #endif

@@ -49,18 +49,40 @@
 
 const float VIFP::SIGMA_NSQ = 2.0f;
 
-VIFP::VIFP(int h, int w) : Metric(h, w)
+VIFP::VIFP(int h, int w) : Metric(h, w),
+    tmp1(h, w, CV_32F),
+    tmp2(h, w, CV_32F),
+    tmp(h, w, CV_32F),
+    mu1(h, w, CV_32F),
+    mu2(h, w, CV_32F),
+    mu1_sq(h, w, CV_32F),
+    mu2_sq(h, w, CV_32F),
+    mu1_mu2(h, w, CV_32F),
+    sigma1_sq(h, w, CV_32F),
+    sigma2_sq(h, w, CV_32F),
+    sigma12(h, w, CV_32F),
+    g(h, w, CV_32F),
+    sv_sq(h, w, CV_32F),
+    sigma1_sq_th(h, w, CV_32F),
+    sigma2_sq_th(h, w, CV_32F),
+    g_th(h, w, CV_32F)
 {
+	for (int scale=0; scale<NLEVS; scale++) {
+		ref[scale] = cv::Mat(h, w, CV_32F);
+		dist[scale] = cv::Mat(h, w, CV_32F);
+
+		// N=2^(4-scale+1)+1;
+		int N = (2 << (NLEVS-scale-1)) + 1;
+
+		w = (w-(N-1)) / 2;
+		h = (h-(N-1)) / 2;
+	}
 }
 
 float VIFP::compute(const cv::Mat& original, const cv::Mat& processed)
 {
 	double num = 0.0;
 	double den = 0.0;
-	
-	cv::Mat ref[NLEVS];
-	cv::Mat dist[NLEVS];
-	cv::Mat tmp1, tmp2;
 	
 	int w = width;
 	int h = height;
@@ -83,9 +105,6 @@ float VIFP::compute(const cv::Mat& original, const cv::Mat& processed)
 			w = (w-(N-1)) / 2;
 			h = (h-(N-1)) / 2;
 			
-			ref[scale] = cv::Mat(h,w,CV_32F);
-			dist[scale] = cv::Mat(h,w,CV_32F);
-			
 			// ref=ref(1:2:end,1:2:end);
 			cv::resize(tmp1, ref[scale], cv::Size(w,h), 0, 0, cv::INTER_NEAREST);
 			// dist=dist(1:2:end,1:2:end);
@@ -98,19 +117,12 @@ float VIFP::compute(const cv::Mat& original, const cv::Mat& processed)
 	return float(num/den);
 }
 
-void VIFP::computeVIFP(const cv::Mat& ref, const cv::Mat& dist, int N, double& num, double& den)
+void VIFP::computeVIFP(const cv::Mat& ref_, const cv::Mat& dist_, int N, double& num, double& den)
 {
-	int w = ref.cols - (N-1);
-	int h = ref.rows - (N-1);
-	
-	cv::Mat tmp(h,w,CV_32F);
-	cv::Mat mu1(h,w,CV_32F), mu2(h,w,CV_32F), mu1_sq(h,w,CV_32F), mu2_sq(h,w,CV_32F), mu1_mu2(h,w,CV_32F), sigma1_sq(h,w,CV_32F), sigma2_sq(h,w,CV_32F), sigma12(h,w,CV_32F), g(h,w,CV_32F), sv_sq(h,w,CV_32F);
-	cv::Mat sigma1_sq_th, sigma2_sq_th, g_th;
-	
-	// mu1 = filter2(win, ref, 'valid');
-	applyGaussianBlur(ref, mu1, N, N/5.0);
-	// mu2 = filter2(win, dist, 'valid');
-	applyGaussianBlur(dist, mu2, N, N/5.0);
+	// mu1 = filter2(win, ref_, 'valid');
+	applyGaussianBlur(ref_, mu1, N, N/5.0);
+	// mu2 = filter2(win, dist_, 'valid');
+	applyGaussianBlur(dist_, mu2, N, N/5.0);
 	
 	const float EPSILON = 1e-10f;
 
@@ -121,16 +133,16 @@ void VIFP::computeVIFP(const cv::Mat& ref, const cv::Mat& dist, int N, double& n
 	// mu1_mu2 = mu1.*mu2;
 	cv::multiply(mu1, mu2, mu1_mu2);		
 	
-	// sigma1_sq = filter2(win, ref.*ref, 'valid') - mu1_sq;
-	cv::multiply(ref, ref, tmp);
+	// sigma1_sq = filter2(win, ref_.*ref_, 'valid') - mu1_sq;
+	cv::multiply(ref_, ref_, tmp);
 	applyGaussianBlur(tmp, sigma1_sq, N, N/5.0);
 	sigma1_sq -= mu1_sq;
-	// sigma2_sq = filter2(win, dist.*dist, 'valid') - mu2_sq;
-	cv::multiply(dist, dist, tmp);
+	// sigma2_sq = filter2(win, dist_.*dist_, 'valid') - mu2_sq;
+	cv::multiply(dist_, dist_, tmp);
 	applyGaussianBlur(tmp, sigma2_sq, N, N/5.0);
 	sigma2_sq -= mu2_sq;
-	// sigma12 = filter2(win, ref.*dist, 'valid') - mu1_mu2;
-	cv::multiply(ref, dist, tmp);
+	// sigma12 = filter2(win, ref_.*dist_, 'valid') - mu1_mu2;
+	cv::multiply(ref_, dist_, tmp);
 	applyGaussianBlur(tmp, sigma12, N, N/5.0);
 	sigma12 -= mu1_mu2;
 	

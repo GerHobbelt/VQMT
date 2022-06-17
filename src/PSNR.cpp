@@ -30,8 +30,16 @@ PSNR::PSNR(int h, int w) : Metric(h, w)
 
 float PSNR::compute(const cv::Mat& original, const cv::Mat& processed)
 {
-	cv::Mat tmp(height,width,CV_32F);
+	cv::Mat tmp(original.rows, original.cols, original.type());
 	cv::subtract(original, processed, tmp);
 	cv::multiply(tmp, tmp, tmp);
-	return float(10*log10(255*255/cv::mean(tmp).val[0]));
+
+	cv::Scalar tmp_mean = cv::mean(tmp);
+	double res = tmp_mean.val[0];
+	for (int i = 1; i < original.channels(); ++i) {
+		res += tmp_mean.val[1];
+	}
+	res /= original.channels();
+
+	return float(10.0 * log10(255.0 * 255.0 / res));
 }
