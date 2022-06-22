@@ -31,7 +31,7 @@
 
 class Metric {
 public:
-	Metric(int height, int width);
+	Metric(int height, int width, int i = CV_32F);
 	virtual ~Metric();
 	virtual float compute(const cv::Mat& original, const cv::Mat& processed) = 0;
 protected:
@@ -41,6 +41,7 @@ protected:
 	// Returns only those parts of the correlation that are computed without zero-padded edges
 	// (similarly to 'filter2' in Matlab with option 'valid')
 	void applyGaussianBlur(const cv::Mat& src, cv::Mat& dst, int ksize, double sigma);
+	void applyBlur(const cv::Mat& src, cv::Mat& dst, int ksize);
 private:
 	cv::Mat gb_tmp;
 };

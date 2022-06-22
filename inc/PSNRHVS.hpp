@@ -74,6 +74,7 @@ private:
 	static const float MASK[8][8];
 	float maskeff(const cv::Mat &z, const cv::Mat &zdct);
 	float vari(const cv::Mat &z);
+	cv::Mat mean_mat, stddev_mat, a, b, a_dct, b_dct;
 };
 
 #endif

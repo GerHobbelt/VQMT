@@ -26,6 +26,7 @@
 
 VideoYUV::VideoYUV(const char *f, int h, int w, int nbf, int chroma_format)
 {
+	chf = chroma_format;
 	if(strcmp(f, "-") == 0)
 		file = stdin;
 	else
@@ -54,7 +55,6 @@ VideoYUV::VideoYUV(const char *f, int h, int w, int nbf, int chroma_format)
 
 		comp_height[2] = comp_height[1] = height >> 1;
 		comp_width [2] = comp_width [1] = width >> 1;
-		comp_width_ratio = comp_height_ratio = 2;
 	}
 	else if (chroma_format == CHROMA_SUBSAMP_422) {
 		// Check size
@@ -65,14 +65,10 @@ VideoYUV::VideoYUV(const char *f, int h, int w, int nbf, int chroma_format)
 
 		comp_height[2] = comp_height[1] = height;
 		comp_width [2] = comp_width [1] = width >> 1;
-		comp_width_ratio = 2;
-		comp_height_ratio = 1;
 	}
 	else {
 		comp_height[2] = comp_height[1] = height;
 		comp_width [2] = comp_width [1] = width;
-		comp_width_ratio = 1;
-		comp_height_ratio = 1;
 	}
 	comp_size[0] = comp_height[0]*comp_width[0];
 	comp_size[1] = comp_height[1]*comp_width[1];
@@ -109,15 +105,67 @@ bool VideoYUV::readOneFrame()
 imgpel *VideoYUV::getYUV()
 {
 	if (yuv_ready) return yuv_data;
-	int comp_height_ratio_2 = comp_height_ratio * comp_height_ratio;
 
-	for (int y = 0; y < height; ++y) {
-		int line_offset = y * width;
+	imgpel *ptr = yuv_data;
+	imgpel *lptr = luma;
+	imgpel *c0 = chroma[0];
+	imgpel *c1 = chroma[1];
 
-		for (int x = 0; x < width; ++x) {
-			yuv_data[3 * (x + line_offset)] = luma[x + line_offset];
-			yuv_data[3 * (x + line_offset) + 1] = chroma[0][x / comp_width_ratio + line_offset / comp_height_ratio_2];
-			yuv_data[3 * (x + line_offset) + 2] = chroma[1][x / comp_width_ratio + line_offset / comp_height_ratio_2];
+	if (chf == CHROMA_SUBSAMP_400) {
+		for (int y = 0; y < height; ++y) {
+			for (int x = 0; x < width; ++x) {
+				*ptr++ = *lptr++;
+				*ptr++ = 0;
+				*ptr++ = 0;
+			}
+		}
+	} else if (chf == CHROMA_SUBSAMP_420) {
+		imgpel *next_line_ptr = yuv_data + width;
+		imgpel *next_line_lptr = luma + width;
+
+		for (int y = 0; y < height; y += 2) {
+			for (int x = 0; x < width; x += 2) {
+				*ptr++ = *lptr++;
+				*ptr++ = *c0;
+				*ptr++ = *c1;
+
+				*ptr++ = *lptr++;
+				*ptr++ = *c0;
+				*ptr++ = *c1;
+
+				*next_line_ptr++ = *next_line_lptr++;
+				*next_line_ptr++ = *c0;
+				*next_line_ptr++ = *c1;
+
+				*next_line_ptr++ = *next_line_lptr++;
+				*next_line_ptr++ = *c0++;
+				*next_line_ptr++ = *c1++;
+			}
+
+			ptr += width;
+			lptr += width;
+			next_line_ptr += width;
+			next_line_lptr += width;
+		}
+	} else if (chf == CHROMA_SUBSAMP_422) {
+		for (int y = 0; y < height; ++y) {
+			for (int x = 0; x < width; x += 2) {
+				*ptr++ = *lptr++;
+				*ptr++ = *c0;
+				*ptr++ = *c1;
+
+				*ptr++ = *lptr++;
+				*ptr++ = *c0++;
+				*ptr++ = *c1++;
+			}
+		}
+	} else if (chf == CHROMA_SUBSAMP_444) {
+		for (int y = 0; y < height; ++y) {
+			for (int x = 0; x < width; ++x) {
+				*ptr++ = *lptr++;
+				*ptr++ = *c0++;
+				*ptr++ = *c1++;
+			}
 		}
 	}
 
@@ -141,4 +189,16 @@ void VideoYUV::getYUV(cv::Mat& yuv)
 {
 	cv::Mat tmp(height, width, CV_8UC3, getYUV());
 	tmp.convertTo(yuv, yuv.type());
+}
+
+void VideoYUV::getU(cv::Mat& u)
+{
+	cv::Mat tmp(comp_height[1], comp_width[1], CV_8UC1, chroma[0]);
+	tmp.convertTo(u, u.type());
+}
+
+void VideoYUV::getV(cv::Mat& v)
+{
+	cv::Mat tmp(comp_height[2], comp_width[2], CV_8UC1, chroma[1]);
+	tmp.convertTo(v, v.type());
 }

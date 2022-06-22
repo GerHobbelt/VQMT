@@ -71,6 +71,8 @@ public:
 	imgpel *getFrameData() { return data; }
 	void getYUV(cv::Mat& yuv);
 	imgpel *getYUV();
+	void getU(cv::Mat& u);
+	void getV(cv::Mat& v);
 	size_t getRawFrameSize() const { return size; }
 private:
 	FILE* file;		// file stream
@@ -82,9 +84,8 @@ private:
 
 	size_t size;		// number of samples
 	int comp_size[3];	// number of samples in specific component
-	int comp_width_ratio;
-	int comp_height_ratio;
 	bool yuv_ready;
+	int chf;
 
 	imgpel *data;		// data array
 	imgpel *luma;		// pointer to luma

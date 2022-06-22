@@ -60,7 +60,8 @@ const float PSNRHVS::MASK[8][8] =	{{0.390625f, 0.826446f, 1.000000f, 0.390625f, 
 									 {0.041649f, 0.024414f, 0.016437f, 0.013212f, 0.009426f, 0.006830f, 0.006944f, 0.009803f},
 									 {0.019290f, 0.011815f, 0.011080f, 0.010412f, 0.007972f, 0.010000f, 0.009426f, 0.010203f}};
 
-PSNRHVS::PSNRHVS(int h, int w) : Metric(h, w)
+PSNRHVS::PSNRHVS(int h, int w) : Metric(h, w),
+	a(8,8,CV_32F), b(8,8,CV_32F), a_dct(8,8,CV_32F), b_dct(8,8,CV_32F)
 {
 }
 
@@ -80,7 +81,6 @@ float PSNRHVS::compute(const cv::Mat& original, const cv::Mat& processed)
 	float s2 = 0.0f;
 	float num = static_cast<float>(width*height);
 	float tmp;
-	cv::Mat a(8,8,CV_32F), b(8,8,CV_32F), a_dct(8,8,CV_32F), b_dct(8,8,CV_32F);
 
 	for (int y=0; y<height; y+=8) {
 		for (int x=0; x<width; x+=8) {
@@ -176,11 +176,22 @@ float PSNRHVS::maskeff(const cv::Mat &z, const cv::Mat &zdct)
 
 float PSNRHVS::vari(const cv::Mat &z)
 {
-	float mean = 0.0;
-	float d = 0.0;
-
 	int w = z.cols;
 	int h = z.rows;
+
+	// d=var(AA(:))*length(AA(:));
+
+	{
+		cv::meanStdDev(z, mean_mat, stddev_mat);
+		double d = stddev_mat.at<double>(0);
+		double N = static_cast<double>(h*w);
+		d = d * d * N * N / (N - 1);
+
+		return static_cast<float>(d);
+	}
+
+	float mean = 0.0;
+	float d = 0.0;
 	float N = static_cast<float>(h*w);
 
 	for (int i=0; i<h; i++) {
@@ -195,6 +206,5 @@ float PSNRHVS::vari(const cv::Mat &z)
 	d -= mean*mean;
 	d *= N*N/(N-1);
 
-	// d=var(AA(:))*length(AA(:));
 	return d;
 }

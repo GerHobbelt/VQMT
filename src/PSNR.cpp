@@ -24,20 +24,20 @@
 
 #include "PSNR.hpp"
 
-PSNR::PSNR(int h, int w) : Metric(h, w)
+PSNR::PSNR(int h, int w, int t) : Metric(h, w, t),
+  tmp(h, w, t)
 {
 }
 
 float PSNR::compute(const cv::Mat& original, const cv::Mat& processed)
 {
-	cv::Mat tmp(original.rows, original.cols, original.type());
 	cv::subtract(original, processed, tmp);
 	cv::multiply(tmp, tmp, tmp);
 
 	cv::Scalar tmp_mean = cv::mean(tmp);
 	double res = tmp_mean.val[0];
 	for (int i = 1; i < original.channels(); ++i) {
-		res += tmp_mean.val[1];
+		res += tmp_mean.val[i];
 	}
 	res /= original.channels();
 

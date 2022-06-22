@@ -37,7 +37,7 @@
 
 const double MSSSIM::WEIGHT[] = {0.0448, 0.2856, 0.3001, 0.2363, 0.1333};
 
-MSSSIM::MSSSIM(int h, int w) : SSIM(h, w)
+MSSSIM::MSSSIM(int h, int w) : SSIM(h, w, CV_32F)
 {
 	for (int l=0; l<NLEVS; l++) {
 		im1[l] = cv::Mat(h,w,CV_32F);

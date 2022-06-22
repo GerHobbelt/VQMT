@@ -191,8 +191,10 @@ int main (int argc, const char *argv[])
 		}
 	}
 
-	PSNR *psnr     = new PSNR(height, width);
-	SSIM *ssim     = new SSIM(height, width);
+	PSNR *psnr     = new PSNR(height, width, CV_32F);
+	PSNR *yuvpsnr  = new PSNR(height, width, CV_32FC3);
+	SSIM *ssim     = new SSIM(height, width, CV_32F);
+	SSIM *yuvssim  = new SSIM(height, width, CV_32FC3);
 	MSSSIM *msssim = new MSSSIM(height, width);
 	VIFP *vifp     = new VIFP(height, width);
 	PSNRHVS *phvs  = new PSNRHVS(height, width);
@@ -222,7 +224,7 @@ int main (int argc, const char *argv[])
 
 		// Compute YUVPSNR
 		if (result_file[METRIC_YUVPSNR] != NULL) {
-			result[METRIC_YUVPSNR] = psnr->compute(original_frame3, processed_frame3);
+			result[METRIC_YUVPSNR] = yuvpsnr->compute(original_frame3, processed_frame3);
 		}
 
 		// Compute SSIM and MS-SSIM
@@ -232,7 +234,7 @@ int main (int argc, const char *argv[])
 
 		// Compute YUVSSIM and MS-SSIM
 		if (result_file[METRIC_YUVSSIM] != NULL) {
-			result[METRIC_YUVSSIM] = ssim->compute(original_frame3, processed_frame3);
+			result[METRIC_YUVSSIM] = yuvssim->compute(original_frame3, processed_frame3);
 		}
 
 		if (result_file[METRIC_MSSSIM] != NULL) {
