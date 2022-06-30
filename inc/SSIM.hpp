@@ -50,14 +50,12 @@ public:
 	// Compute the SSIM index of the processed image
 	float compute(const cv::Mat& original, const cv::Mat& processed);
 #if defined(HAVE_SSIM_BLUR_8)
-	float compute_x8(const cv::Mat& original, const cv::Mat& processed);
+	cv::Scalar compute_x8(const cv::Mat& original, const cv::Mat& processed);
 #endif
 protected:
 	// Compute the SSIM index and mean of the contrast comparison function
 	cv::Scalar computeSSIM(const cv::Mat& img1, const cv::Mat& img2);
 private:
-	static const float C1;
-	static const float C2;
 	cv::Mat mu1, mu2;
 	cv::Mat mu1_sq, mu2_sq, mu1_mu2;
 	cv::Mat img1_sq, img2_sq, img1_img2;

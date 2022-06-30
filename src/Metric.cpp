@@ -24,10 +24,8 @@
 
 #include "Metric.hpp"
 
-Metric::Metric(int h, int w, int t) : gb_tmp(h, w, t)
+Metric::Metric(int h, int w, int t) : height(h), width(w), gb_tmp(h, w, t)
 {
-	height = h;
-	width = w;
 }
 
 Metric::~Metric()
@@ -44,6 +42,7 @@ void Metric::applyGaussianBlur(const cv::Mat& src, cv::Mat& dst, int ksize, doub
 
 void Metric::applyBlur(const cv::Mat& src, cv::Mat& dst, int ksize)
 {
-	cv::blur(src, gb_tmp, cv::Size(ksize,ksize), cv::Point(0, 0));
-	gb_tmp(cv::Range(0, gb_tmp.rows - ksize), cv::Range(0, gb_tmp.cols - ksize)).copyTo(dst);
+	cv::blur(src, gb_tmp, cv::Size(ksize, ksize), cv::Point(0, 0));
+	int invalid = ksize - 1;
+	gb_tmp(cv::Range(0, gb_tmp.rows - invalid), cv::Range(0, gb_tmp.cols - invalid)).copyTo(dst);
 }

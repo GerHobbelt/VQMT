@@ -35,8 +35,13 @@
 
 #include "SSIM.hpp"
 
-const float SSIM::C1 = 6.5025f;
-const float SSIM::C2 = 58.5225f;
+namespace {
+	const float C1 = 6.5025f;
+	const float C2 = 58.5225f;
+
+	const cv::Scalar scC1(C1, C1, C1);
+	const cv::Scalar scC2(C2, C2, C2);
+}
 
 enum {
 	SSIM_SIZE = 8,
@@ -77,7 +82,7 @@ float SSIM::compute(const cv::Mat& original, const cv::Mat& processed)
 }
 
 #if defined(HAVE_SSIM_BLUR_8)
-float SSIM::compute_x8(const cv::Mat& img1, const cv::Mat& img2)
+cv::Scalar SSIM::compute_x8(const cv::Mat& img1, const cv::Mat& img2)
 {
 	// mu1 = filter2(window, img1, 'valid');
 	applyBlur(img1, bmu1, SSIM_SIZE);
@@ -109,36 +114,31 @@ float SSIM::compute_x8(const cv::Mat& img1, const cv::Mat& img2)
 	bsigma12 -= bmu1_mu2;
 
 	// cs_map = (2*sigma12 + C2)./(sigma1_sq + sigma2_sq + C2);
-	// tmp1 = 2*sigma12 + C2;
 	cv::Mat& tmp1 = bsigma12;
 	tmp1 *= 2;
-	tmp1 += C2;
+	tmp1 += scC2;
 
-	//tmp2 = sigma1_sq + sigma2_sq + C2;
 	cv::Mat& tmp2 = bsigma1_sq;
 	tmp2 += bsigma2_sq;
-	tmp2 += C2;
+	tmp2 += scC2;
 
 	cv::divide(tmp1, tmp2, tmp1);
 
 	// ssim_map = ((2*mu1_mu2 + C1).*(2*sigma12 + C2))./((mu1_sq + mu2_sq + C1).*(sigma1_sq + sigma2_sq + C2));
-	//tmp3 = 2*mu1_mu2 + C1;
 	cv::Mat& tmp3 = bmu1_mu2;
 	tmp3 *= 2;
-	tmp3 += C1;
+	tmp3 += scC1;
 
-	//tmp4 = mu1_sq + mu2_sq + C1;
 	cv::Mat& tmp4 = bmu1_sq;
 	tmp4 += bmu2_sq;
-	tmp4 += C1;
+	tmp4 += scC1;
 
 	cv::multiply(tmp3, tmp1, tmp3);
 	cv::divide(tmp3, tmp4, tmp3);
 	cv::Mat& ssim_map = tmp3;
 
 	// mssim = mean2(ssim_map);
-	cv::Scalar ssim_mean = cv::mean(ssim_map);
-	return float(ssim_mean.val[0]);
+	return cv::mean(ssim_map);
 }
 #endif
 
@@ -176,12 +176,11 @@ cv::Scalar SSIM::computeSSIM(const cv::Mat& img1, const cv::Mat& img2)
 	// cs_map = (2*sigma12 + C2)./(sigma1_sq + sigma2_sq + C2);
 	cv::Mat& tmp1 = sigma12;
 	tmp1 *= 2;
-	tmp1 += C2;
+	tmp1 += scC2;
 
-	//tmp2 = sigma1_sq + sigma2_sq + C2;
 	cv::Mat& tmp2 = sigma1_sq;
 	tmp2 += sigma2_sq;
-	tmp2 += C2;
+	tmp2 += scC2;
 
 	cv::divide(tmp1, tmp2, tmp1);
 	cv::Mat& cs_map = tmp1;
@@ -189,12 +188,11 @@ cv::Scalar SSIM::computeSSIM(const cv::Mat& img1, const cv::Mat& img2)
 	// ssim_map = ((2*mu1_mu2 + C1).*(2*sigma12 + C2))./((mu1_sq + mu2_sq + C1).*(sigma1_sq + sigma2_sq + C2));
 	cv::Mat& tmp3 = mu1_mu2;
 	tmp3 *= 2;
-	tmp3 += C1;
+	tmp3 += scC1;
 
-	//tmp4 = mu1_sq + mu2_sq + C1;
 	cv::Mat& tmp4 = mu1_sq;
 	tmp4 += mu2_sq;
-	tmp4 += C1;
+	tmp4 += scC1;
 
 	cv::multiply(tmp3, tmp1, tmp3);
 	cv::divide(tmp3, tmp4, tmp3);
