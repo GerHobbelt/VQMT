@@ -120,7 +120,7 @@ imgpel *VideoYUV::getYUV()
 			}
 		}
 	} else if (chf == CHROMA_SUBSAMP_420) {
-		imgpel *next_line_ptr = yuv_data + width;
+		imgpel *next_line_ptr = yuv_data + width * 3;
 		imgpel *next_line_lptr = luma + width;
 
 		for (int y = 0; y < height; y += 2) {
@@ -142,9 +142,9 @@ imgpel *VideoYUV::getYUV()
 				*next_line_ptr++ = *c1++;
 			}
 
-			ptr += width;
+			ptr += width * 3;
 			lptr += width;
-			next_line_ptr += width;
+			next_line_ptr += width * 3;
 			next_line_lptr += width;
 		}
 	} else if (chf == CHROMA_SUBSAMP_422) {
