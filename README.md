@@ -15,8 +15,10 @@ This software provides fast implementations of the following objective metrics:
 In this software, the above metrics are implemented in C++ with the help of
 OpenCV and are based on the original Matlab implementations provided by their
 developers.
+
 The source code of this software can be compiled on any platform and
 only requires the OpenCV library (core and imgproc modules).
+
 This software allows performing video quality assessment without using Matlab
 and shows better performance than Matlab in terms of run time.
 
@@ -77,6 +79,7 @@ will create the following output files in CSV (comma-separated values) format:
 - results_vifp.csv
 
 Notes:
+
 - SSIM comes for free when MSSSIM is computed (but you still need to specify it
   to get the output)
 - PSNRHVS and PSNRHVSM are always computed at the same time (but you still need
@@ -94,8 +97,10 @@ The software provided may not be commercially distributed. In no event shall the
 Ecole Polytechnique Fédérale de Lausanne (EPFL) be liable to any party for
 direct, indirect, special, incidental, or consequential damages arising out of
 the use of the software and its documentation.
+
 The Ecole Polytechnique Fédérale de Lausanne (EPFL) specifically disclaims any
 warranties.
+
 The software provided hereunder is on an "as is" basis and the Ecole
 Polytechnique Fédérale de Lausanne (EPFL) has no obligation to provide
 maintenance, support, updates, enhancements, or modifications.
