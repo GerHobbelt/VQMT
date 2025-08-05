@@ -67,6 +67,7 @@ And also Spherical metrics:
 **************************************************************************/
 
 #include <iostream>
+#include <format>
 #include <string.h>
 #include <opencv2/core/core.hpp>
 #include "VideoYUV.hpp"
@@ -256,12 +257,12 @@ int main (int argc, const char *argv[])
         // Compute EWPSNR
         if (result_file[METRIC_EWPSNR] != NULL) {
             ewpsnr->set_frame_no(static_cast<unsigned int>(frame));
-            result[METRIC_EWPSNR] = ewpsnr->compute(original_frame, processed_frame);
+            results[METRIC_EWPSNR][frame] = ewpsnr->compute(original_frame, processed_frame);
         }
 
 		// Compute YUVPSNR
 		if (result_file[METRIC_YUVPSNR] != NULL) {
-			result[METRIC_YUVPSNR] = yuvpsnr->compute(original_frame3, processed_frame3);
+			results[METRIC_YUVPSNR][frame] = yuvpsnr->compute(original_frame3, processed_frame3);
 		}
 
 		// Compute SSIM and MS-SSIM
@@ -271,7 +272,7 @@ int main (int argc, const char *argv[])
 
 		// Compute YUVSSIM and MS-SSIM
 		if (result_file[METRIC_YUVSSIM] != NULL) {
-			result[METRIC_YUVSSIM] = yuvssim->compute(original_frame3, processed_frame3);
+			results[METRIC_YUVSSIM][frame] = yuvssim->compute(original_frame3, processed_frame3);
 		}
 
     if (result_file[METRIC_MSSSIM] != nullptr) {
@@ -304,17 +305,17 @@ int main (int argc, const char *argv[])
 
         // Compute WSPSNR
         if (result_file[METRIC_WSPSNR] != nullptr) {
-            result[METRIC_WSPSNR] = wspsnr->compute(original_frame, processed_frame);
+            results[METRIC_WSPSNR][frame] = wspsnr->compute(original_frame, processed_frame);
         }
 
-        printf ("PSNR: %.3f, WSPSNR: %.3f\n", result[METRIC_PSNR], result[METRIC_WSPSNR]);
+        std::cout << std::format("PSNR: {:.3}, WSPSNR: {:.3}\n", results[METRIC_PSNR][frame], results[METRIC_WSPSNR][frame]);
 
 		// Print quality index to file
         std::cout << ". result: ";
 		for (int m=0; m<METRIC_SIZE; m++) {
       if (result_file[m] != nullptr) {
 				fprintf(result_file[m], "%d,%.6f\n", frame, static_cast<double>(results[m][frame]));
-                std::cout << result[m] << "  ";
+                std::cout << results[m][frame] << "  ";
 			}
 		}
         std::cout << std::endl;
