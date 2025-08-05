@@ -67,6 +67,14 @@ private:
 	static const float SIGMA_NSQ;
 	// Compute the coefficients of the VIFp index at a particular subband
 	void computeVIFP(const cv::Mat& ref, const cv::Mat& dist, int N, double& num, double& den);
+
+	cv::Mat ref[NLEVS];
+	cv::Mat dist[NLEVS];
+	cv::Mat tmp1, tmp2;
+
+	cv::Mat tmp;
+	cv::Mat mu1, mu2, mu1_sq, mu2_sq, mu1_mu2, sigma1_sq, sigma2_sq, sigma12, g, sv_sq;
+	cv::Mat sigma1_sq_th, sigma2_sq_th, g_th;
 };
 
 #endif

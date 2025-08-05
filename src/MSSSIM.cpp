@@ -37,8 +37,14 @@
 
 const double MSSSIM::WEIGHT[] = {0.0448, 0.2856, 0.3001, 0.2363, 0.1333};
 
-MSSSIM::MSSSIM(int h, int w) : SSIM(h, w)
+MSSSIM::MSSSIM(int h, int w) : SSIM(h, w, CV_32F)
 {
+	for (int l=0; l<NLEVS; l++) {
+		im1[l] = cv::Mat(h,w,CV_32F);
+		im2[l] = cv::Mat(h,w,CV_32F);
+		w /= 2;
+		h /= 2;
+	}
 }
 
 float MSSSIM::compute(const cv::Mat& original, const cv::Mat& processed)
@@ -46,9 +52,6 @@ float MSSSIM::compute(const cv::Mat& original, const cv::Mat& processed)
 	double mssim[NLEVS];
 	double mcs[NLEVS];
 
-	cv::Mat im1[NLEVS];
-	cv::Mat im2[NLEVS];
-	
 	int w = original.cols;
 	int h = original.rows;
 	
@@ -64,9 +67,7 @@ float MSSSIM::compute(const cv::Mat& original, const cv::Mat& processed)
 		if (l < NLEVS-1) {
 			w /= 2;
 			h /= 2;
-			im1[l+1] = cv::Mat(h,w,CV_32F);
-			im2[l+1] = cv::Mat(h,w,CV_32F);
-			
+
 			// filtered_im1 = filter2(downsample_filter, im1, 'valid');
 			// im1 = filtered_im1(1:2:M-1, 1:2:N-1);
 			cv::resize(im1[l], im1[l+1], cv::Size(w,h), 0, 0, cv::INTER_LINEAR);

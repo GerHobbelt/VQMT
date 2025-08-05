@@ -35,9 +35,11 @@
 
 class PSNR : protected Metric {
 public:
-	PSNR(int height, int width);
+	PSNR(int height, int width, int t);
 	// Compute the PSNR index of the processed image
 	float compute(const cv::Mat& original, const cv::Mat& processed);
+private:
+	cv::Mat tmp;
 };
 
 #endif

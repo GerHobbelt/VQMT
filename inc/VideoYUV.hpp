@@ -68,6 +68,12 @@ public:
 	// Get the luma component
 	// readOneFrame() needs to be called before getLuma()
 	void getLuma(cv::Mat& luma, int type = CV_8UC1);
+	imgpel *getFrameData() { return data; }
+	void getYUV(cv::Mat& yuv);
+	imgpel *getYUV();
+	void getU(cv::Mat& u);
+	void getV(cv::Mat& v);
+	size_t getRawFrameSize() const { return size; }
 private:
 	FILE* file;		// file stream
 	int nbframes;		// number of frames
@@ -76,12 +82,15 @@ private:
 	int comp_height[3];	// height in specific component
 	int comp_width[3];	// width in specific component
 
-	int size;		// number of samples
+	size_t size;		// number of samples
 	int comp_size[3];	// number of samples in specific component
+	bool yuv_ready;
+	int chf;
 
 	imgpel *data;		// data array
 	imgpel *luma;		// pointer to luma
 	imgpel *chroma[2];	// pointers to chroma
+	imgpel *yuv_data;
 };
 
 #endif

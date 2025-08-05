@@ -88,7 +88,9 @@ enum Params {
 
 enum Metrics {
 	METRIC_PSNR = 0,
+	METRIC_YUVPSNR,
 	METRIC_SSIM,
+	METRIC_YUVSSIM,
 	METRIC_MSSSIM,
 	METRIC_VIFP,
 	METRIC_PSNRHVS,
@@ -137,13 +139,20 @@ int main (int argc, const char *argv[])
 	FILE *result_file[METRIC_SIZE] = {NULL};
 	char *str = new char[256];
 	for (int i=7; i<argc; i++) {
-		if (strcmp(argv[i], "PSNR") == 0) {
+		if (strcmp(argv[i], "PSNR") == 0 || strcmp(argv[i], "YPSNR") == 0) {
 			sprintf(str, "%s_psnr.csv", argv[PARAM_RESULTS]);
 			result_file[METRIC_PSNR] = fopen(str, "w");
+		} else if (strcmp(argv[i], "YUVPSNR") == 0) {
+			sprintf(str, "%s_yuvpsnr.csv", argv[PARAM_RESULTS]);
+			result_file[METRIC_YUVPSNR] = fopen(str, "w");
 		}
 		else if (strcmp(argv[i], "SSIM") == 0) {
 			sprintf(str, "%s_ssim.csv", argv[PARAM_RESULTS]);
 			result_file[METRIC_SSIM] = fopen(str, "w");
+		}
+		else if (strcmp(argv[i], "YUVSSIM") == 0) {
+			sprintf(str, "%s_yuvssim.csv", argv[PARAM_RESULTS]);
+			result_file[METRIC_YUVSSIM] = fopen(str, "w");
 		}
 		else if (strcmp(argv[i], "MSSSIM") == 0) {
 			sprintf(str, "%s_msssim.csv", argv[PARAM_RESULTS]);
@@ -182,13 +191,17 @@ int main (int argc, const char *argv[])
 		}
 	}
 
-	PSNR *psnr     = new PSNR(height, width);
-	SSIM *ssim     = new SSIM(height, width);
+	PSNR *psnr     = new PSNR(height, width, CV_32F);
+	PSNR *yuvpsnr  = new PSNR(height, width, CV_32FC3);
+	SSIM *ssim     = new SSIM(height, width, CV_32F);
+	SSIM *yuvssim  = new SSIM(height, width, CV_32FC3);
 	MSSSIM *msssim = new MSSSIM(height, width);
 	VIFP *vifp     = new VIFP(height, width);
 	PSNRHVS *phvs  = new PSNRHVS(height, width);
 
 	cv::Mat original_frame(height,width,CV_32F), processed_frame(height,width,CV_32F);
+	cv::Mat original_frame3(height,width,CV_32FC3), processed_frame3(height,width,CV_32FC3);
+
 	float result[METRIC_SIZE] = {0};
 	float result_avg[METRIC_SIZE] = {0};
 
@@ -199,15 +212,31 @@ int main (int argc, const char *argv[])
 		if (!processed->readOneFrame()) exit(EXIT_FAILURE);
 		processed->getLuma(processed_frame, CV_32F);
 
+		if (result_file[METRIC_YUVPSNR] != NULL || result_file[METRIC_YUVSSIM] != NULL) {
+			original->getYUV(original_frame3);
+			processed->getYUV(processed_frame3);
+		}
+
 		// Compute PSNR
 		if (result_file[METRIC_PSNR] != NULL) {
 			result[METRIC_PSNR] = psnr->compute(original_frame, processed_frame);
+		}
+
+		// Compute YUVPSNR
+		if (result_file[METRIC_YUVPSNR] != NULL) {
+			result[METRIC_YUVPSNR] = yuvpsnr->compute(original_frame3, processed_frame3);
 		}
 
 		// Compute SSIM and MS-SSIM
 		if (result_file[METRIC_SSIM] != NULL && result_file[METRIC_MSSSIM] == NULL) {
 			result[METRIC_SSIM] = ssim->compute(original_frame, processed_frame);
 		}
+
+		// Compute YUVSSIM and MS-SSIM
+		if (result_file[METRIC_YUVSSIM] != NULL) {
+			result[METRIC_YUVSSIM] = yuvssim->compute(original_frame3, processed_frame3);
+		}
+
 		if (result_file[METRIC_MSSSIM] != NULL) {
 			msssim->compute(original_frame, processed_frame);
 			if (result_file[METRIC_SSIM] != NULL) {
@@ -260,7 +289,7 @@ int main (int argc, const char *argv[])
 
 	duration = static_cast<double>(cv::getTickCount())-duration;
 	duration /= cv::getTickFrequency();
-	printf("Time: %0.3fs\n", duration);
+	//printf("Time: %0.3fs\n", duration);
 
 	return EXIT_SUCCESS;
 }

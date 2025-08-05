@@ -26,6 +26,7 @@
 
 VideoYUV::VideoYUV(const char *f, int h, int w, int nbf, int chroma_format)
 {
+	chf = chroma_format;
 	if(strcmp(f, "-") == 0)
 		file = stdin;
 	else
@@ -39,21 +40,21 @@ VideoYUV::VideoYUV(const char *f, int h, int w, int nbf, int chroma_format)
 	width  = w;
 	nbframes = nbf;
 
-	comp_height[0] = h;
-	comp_width [0] = w;
+	comp_height[0] = height;
+	comp_width [0] = width;
 	if (chroma_format == CHROMA_SUBSAMP_400) {
 		comp_height[2] = comp_height[1] = 0;
 		comp_width [2] = comp_width [1] = 0;
 	}
 	else if (chroma_format == CHROMA_SUBSAMP_420) {
 		// Check size
-		if (h % 2 == 1 || w % 2 == 1) {
+		if (height % 2 == 1 || width % 2 == 1) {
 			fprintf(stderr, "YUV420: 'height' and 'width' have to be even numbers.\n");
 			exit(EXIT_FAILURE);
 		}
 
-		comp_height[2] = comp_height[1] = h >> 1;
-		comp_width [2] = comp_width [1] = w >> 1;
+		comp_height[2] = comp_height[1] = height >> 1;
+		comp_width [2] = comp_width [1] = width >> 1;
 	}
 	else if (chroma_format == CHROMA_SUBSAMP_422) {
 		// Check size
@@ -62,23 +63,24 @@ VideoYUV::VideoYUV(const char *f, int h, int w, int nbf, int chroma_format)
 			exit(EXIT_FAILURE);
 		}
 
-		comp_height[2] = comp_height[1] = h;
-		comp_width [2] = comp_width [1] = w >> 1;
+		comp_height[2] = comp_height[1] = height;
+		comp_width [2] = comp_width [1] = width >> 1;
 	}
 	else {
-		comp_height[2] = comp_height[1] = h;
-		comp_width [2] = comp_width [1] = w;
+		comp_height[2] = comp_height[1] = height;
+		comp_width [2] = comp_width [1] = width;
 	}
 	comp_size[0] = comp_height[0]*comp_width[0];
 	comp_size[1] = comp_height[1]*comp_width[1];
 	comp_size[2] = comp_height[2]*comp_width[2];
 	
-	size = comp_size[0]+comp_size[1]+comp_size[2];
+	size = static_cast<size_t>(comp_size[0]+comp_size[1]+comp_size[2]);
 	
 	data = new imgpel[size];
 	luma = data;
 	chroma[0] = data+comp_size[0];
 	chroma[1] = data+comp_size[0]+comp_size[1];
+	yuv_data = new imgpel[height * width * 3];
 }
 
 VideoYUV::~VideoYUV()
@@ -91,28 +93,112 @@ bool VideoYUV::readOneFrame()
 {
 	imgpel *ptr_data = data;
 
-	for (int j=0; j<3; j++) {
-		int read_size = comp_width[j];
-		if (read_size <= 0)
-			continue;
-		for (int i=0; i<comp_height[j]; i++) {
-			if (fread(ptr_data, 1, static_cast<size_t>(read_size), file) != static_cast<size_t>(read_size)) {
-				fprintf(stderr, "readOneFrame: cannot read %d bytes from input file, unexpected EOF.\n", read_size);
-				return false;
+	if (fread(ptr_data, 1, size, file) != size) {
+		fprintf(stderr, "readOneFrame: cannot read %zu bytes from input file, unexpected EOF.\n", size);
+    return false;
+  }
+	yuv_ready = false;
+
+	return true;
+}
+
+imgpel *VideoYUV::getYUV()
+{
+	if (yuv_ready) return yuv_data;
+
+	imgpel *ptr = yuv_data;
+	imgpel *lptr = luma;
+	imgpel *c0 = chroma[0];
+	imgpel *c1 = chroma[1];
+
+	if (chf == CHROMA_SUBSAMP_400) {
+		for (int y = 0; y < height; ++y) {
+			for (int x = 0; x < width; ++x) {
+				*ptr++ = *lptr++;
+				*ptr++ = 0;
+				*ptr++ = 0;
 			}
-			ptr_data += read_size;
+		}
+	} else if (chf == CHROMA_SUBSAMP_420) {
+		imgpel *next_line_ptr = yuv_data + width * 3;
+		imgpel *next_line_lptr = luma + width;
+
+		for (int y = 0; y < height; y += 2) {
+			for (int x = 0; x < width; x += 2) {
+				*ptr++ = *lptr++;
+				*ptr++ = *c0;
+				*ptr++ = *c1;
+
+				*ptr++ = *lptr++;
+				*ptr++ = *c0;
+				*ptr++ = *c1;
+
+				*next_line_ptr++ = *next_line_lptr++;
+				*next_line_ptr++ = *c0;
+				*next_line_ptr++ = *c1;
+
+				*next_line_ptr++ = *next_line_lptr++;
+				*next_line_ptr++ = *c0++;
+				*next_line_ptr++ = *c1++;
+			}
+
+			ptr += width * 3;
+			lptr += width;
+			next_line_ptr += width * 3;
+			next_line_lptr += width;
+		}
+	} else if (chf == CHROMA_SUBSAMP_422) {
+		for (int y = 0; y < height; ++y) {
+			for (int x = 0; x < width; x += 2) {
+				*ptr++ = *lptr++;
+				*ptr++ = *c0;
+				*ptr++ = *c1;
+
+				*ptr++ = *lptr++;
+				*ptr++ = *c0++;
+				*ptr++ = *c1++;
+			}
+		}
+	} else if (chf == CHROMA_SUBSAMP_444) {
+		for (int y = 0; y < height; ++y) {
+			for (int x = 0; x < width; ++x) {
+				*ptr++ = *lptr++;
+				*ptr++ = *c0++;
+				*ptr++ = *c1++;
+			}
 		}
 	}
-	return true;
+
+	yuv_ready = true;
+
+	return yuv_data;
 }
 
 void VideoYUV::getLuma(cv::Mat& local_luma, int type)
 {
-	cv::Mat tmp(height, width, CV_8UC1, this->luma);
+	cv::Mat tmp(height, width, CV_8UC1, luma);
 	if (type == CV_8UC1) {
 		tmp.copyTo(local_luma);
 	}
 	else {
 		tmp.convertTo(local_luma, type);
 	}
+}
+
+void VideoYUV::getYUV(cv::Mat& yuv)
+{
+	cv::Mat tmp(height, width, CV_8UC3, getYUV());
+	tmp.convertTo(yuv, yuv.type());
+}
+
+void VideoYUV::getU(cv::Mat& u)
+{
+	cv::Mat tmp(comp_height[1], comp_width[1], CV_8UC1, chroma[0]);
+	tmp.convertTo(u, u.type());
+}
+
+void VideoYUV::getV(cv::Mat& v)
+{
+	cv::Mat tmp(comp_height[2], comp_width[2], CV_8UC1, chroma[1]);
+	tmp.convertTo(v, v.type());
 }

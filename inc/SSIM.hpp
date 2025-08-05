@@ -46,15 +46,26 @@
 
 class SSIM : protected Metric {
 public:
-	SSIM(int height, int width);
+	SSIM(int height, int width, int t);
 	// Compute the SSIM index of the processed image
 	float compute(const cv::Mat& original, const cv::Mat& processed);
+#if defined(HAVE_SSIM_BLUR_8)
+	cv::Scalar compute_x8(const cv::Mat& original, const cv::Mat& processed);
+#endif
 protected:
 	// Compute the SSIM index and mean of the contrast comparison function
 	cv::Scalar computeSSIM(const cv::Mat& img1, const cv::Mat& img2);
 private:
-	static const float C1;
-	static const float C2;
+	cv::Mat mu1, mu2;
+	cv::Mat mu1_sq, mu2_sq, mu1_mu2;
+	cv::Mat img1_sq, img2_sq, img1_img2;
+	cv::Mat sigma1_sq, sigma2_sq, sigma12;
+
+#if defined(HAVE_SSIM_BLUR_8)
+	cv::Mat bmu1, bmu2;
+	cv::Mat bmu1_sq, bmu2_sq, bmu1_mu2;
+	cv::Mat bsigma1_sq, bsigma2_sq, bsigma12;
+#endif
 };
 
 #endif
