@@ -230,12 +230,16 @@ int main (int argc, const char **argv)
 		std::cout << "Computing metrics for frame: No." << frame << std::endl;
 
 		// Grab frame
-		if (!original->readOneFrame())
+		if (!original->readOneFrame()) {
+			fprintf(stderr, "Error: ran out of original frames to load: %d/%d\n", frame, nbframes);
 			exit(EXIT_FAILURE);
+		}
 		original->getLuma(original_frame, CV_32F);
 
-		if (!processed->readOneFrame())
+		if (!processed->readOneFrame()) {
+			fprintf(stderr, "Error: ran out of processed frames to load: %d/%d\n", frame, nbframes);
 			exit(EXIT_FAILURE);
+		}
 		processed->getLuma(processed_frame, CV_32F);
 
 		if (result_file[METRIC_YUVPSNR] != NULL || result_file[METRIC_YUVSSIM] != NULL) {
