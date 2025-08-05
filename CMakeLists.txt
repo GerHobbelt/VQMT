@@ -95,6 +95,7 @@ set(SRCS
     ${SOURCE_DIR}/SSIM.cpp
     ${SOURCE_DIR}/VideoYUV.cpp
     ${SOURCE_DIR}/VIFP.cpp
+    ${SOURCE_DIR}/EWPSNR.cpp
 )
 add_executable(
     ${EXECUTABLE_NAME}

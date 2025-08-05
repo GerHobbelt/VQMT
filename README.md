@@ -11,6 +11,7 @@ This software provides fast implementations of the following objective metrics:
 * **PSNR-HVS-M**: Peak Signal-to-Noise Ratio taking into account Contrast
   Sensitivity Function (CSF) and between-coefficient contrast masking of DCT
   basis functions.
+* EWPSNR: Eye-tracking Weighted Peak Signal-to-Noise Ratio.
 
 In this software, the above metrics are implemented in C++ with the help of
 OpenCV and are based on the original Matlab implementations provided by their
@@ -66,6 +67,7 @@ Available metrics:
 - **PSNRHVSM**: Peak Signal-to-Noise Ratio taking into account Contrast
   Sensitivity Function (CSF) and between-coefficient contrast masking of DCT
   basis functions (PSNR-HVS-M)
+* EWPSNR: Eye-tracking Weighted Peak Signal-to-Noise Ratio.
 
 Example:
 
