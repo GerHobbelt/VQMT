@@ -107,10 +107,10 @@ enum Metrics {
 	METRIC_SIZE
 };
 
-int float_compare (const void * a, const void * b);
-float calculate_percentil (const float* results, int nbframes, float p);
+static int float_compare (const void * a, const void * b);
+static float calculate_percentile (const float* results, int nbframes, float p);
 
-int main (int argc, const char *argv[])
+int main (int argc, const char **argv)
 {
 	// Check number of input parameters
 	if (argc < PARAM_SIZE) {
@@ -338,10 +338,10 @@ int main (int argc, const char *argv[])
 			stddev = sqrtf(stddev / static_cast<float>(nbframes - 1));
 
 			qsort(results[m], static_cast<size_t>(nbframes), sizeof(float), float_compare);
-			float p50 = calculate_percentil(results[m], nbframes, 0.50f);
-			float p90 = calculate_percentil(results[m], nbframes, 0.90f);
-			float p95 = calculate_percentil(results[m], nbframes, 0.95f);
-			float p99 = calculate_percentil(results[m], nbframes, 0.99f);
+			float p50 = calculate_percentile(results[m], nbframes, 0.50f);
+			float p90 = calculate_percentile(results[m], nbframes, 0.90f);
+			float p95 = calculate_percentile(results[m], nbframes, 0.95f);
+			float p99 = calculate_percentile(results[m], nbframes, 0.99f);
 
 
 			fprintf(result_file[m], "average,%.6f\n", static_cast<double>(avg));
@@ -374,7 +374,7 @@ int main (int argc, const char *argv[])
 	return EXIT_SUCCESS;
 }
 
-int float_compare (const void * a, const void * b)
+static int float_compare (const void * a, const void * b)
 {
 	float diff = *(static_cast<const float*>(a)) - *(static_cast<const float*>(b));
 	if(diff < 0)
@@ -384,7 +384,7 @@ int float_compare (const void * a, const void * b)
 	return 0;
 }
 
-float calculate_percentil (const float* results, int nbframes, float p)
+static float calculate_percentile (const float* results, int nbframes, float p)
 {
 	float index = static_cast<float>(nbframes) * p;
 	float roundindex = roundf(index);
